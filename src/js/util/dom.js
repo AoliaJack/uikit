@@ -122,6 +122,7 @@ export function animate(element, animation, duration = 200, origin, out) {
             .addClass(animation)
             .addClass(cls);
 
+
         if (!animationend) {
             requestAnimationFrame(() => Animation.cancel(element));
         }

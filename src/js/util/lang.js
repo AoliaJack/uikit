@@ -57,7 +57,7 @@ export function hyphenate(str) {
         .toLowerCase()
 }
 
-var camelizeRE = /-(\w)/g;
+const camelizeRE = /-(\w)/g;
 export function camelize(str) {
     return str.replace(camelizeRE, toUpper)
 }
@@ -79,14 +79,14 @@ export function isUndefined(value) {
 }
 
 export function isContextSelector(selector) {
-    return isString(selector) && selector.match(/^(!|>|\+|-)/);
+    return isString(selector) && selector.match(/^[!>+-]/);
 }
 
 export function getContextSelectors(selector) {
-    return isContextSelector(selector) && selector.split(/(?=\s(?:!|>|\+|-))/g).map(value => value.trim());
+    return isContextSelector(selector) && selector.split(/(?=\s[!>+-])/g).map(value => value.trim());
 }
 
-var contextSelectors = {'!': 'closest', '+': 'nextAll', '-': 'prevAll'};
+const contextSelectors = {'!': 'closest', '+': 'nextAll', '-': 'prevAll'};
 export function toJQuery(element, context) {
 
     if (element === true) {
@@ -150,7 +150,7 @@ var vars = {};
 export function toMedia(value) {
 
     if (isString(value)) {
-        if (value[0] == '@') {
+        if (value[0] === '@') {
             var name = `media-${value.substr(1)}`;
             value = vars[name] || (vars[name] = parseFloat(getCssVar(name)));
         } else if (value.match(/^\(min-width:/)) {

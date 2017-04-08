@@ -1,5 +1,5 @@
 import { Position, Toggable } from '../mixin/index';
-import { doc, getDimensions, isWithin, isTouch, MouseTracker, pointerEnter, pointerLeave, query, removeClass } from '../util/index';
+import { $, Animation, doc, getDimensions, isWithin, isTouch, MouseTracker, pointerEnter, pointerLeave, query, removeClass } from '../util/index';
 
 export default function (UIkit) {
 
@@ -7,7 +7,7 @@ export default function (UIkit) {
 
     doc.on('click', e => {
         var prev;
-        while (active && active !== prev && !isWithin(e.target, active.$el) && (!active.toggle || !isWithin(e.target, active.toggle.$el))) {
+        while (active && active !== prev && !isWithin(e.target, active.$el) && !(active.toggle && isWithin(e.target, active.toggle.$el))) {
             prev = active;
             active.hide(false);
         }
@@ -251,25 +251,9 @@ export default function (UIkit) {
 
             write() {
 
-                if (!this.$el.hasClass(this.cls)) {
-                    return;
+                if (this.isToggled() && !Animation.inProgress(this.$el)) {
+                    this.position();
                 }
-
-                removeClass(this.$el, `${this.clsDrop}-(stack|boundary)`).css({top: '', left: ''});
-
-                this.$el.toggleClass(`${this.clsDrop}-boundary`, this.boundaryAlign);
-
-                var boundary = getDimensions(this.boundary), alignTo = this.boundaryAlign ? boundary : getDimensions(this.toggle.$el);
-
-                if (this.align === 'justify') {
-                    var prop = this.getAxis() === 'y' ? 'width' : 'height';
-                    this.$el.css(prop, alignTo[prop]);
-                } else if (this.$el.outerWidth() > Math.max(boundary.right - alignTo.left, alignTo.right - boundary.left)) {
-                    this.$el.addClass(`${this.clsDrop}-stack`);
-                    this.$el.trigger('stack', [this]);
-                }
-
-                this.positionAt(this.$el, this.boundaryAlign ? this.boundary : this.toggle.$el, this.boundary);
 
             },
 
@@ -281,42 +265,47 @@ export default function (UIkit) {
 
             show(toggle, delay = true) {
 
-                var show = () => !this.isToggled() && this.toggleElement(this.$el, true),
+                var show = () => {
+                        if (!this.isToggled()) {
+                            this.position();
+                            this.toggleElement(this.$el, true);
+                        }
+                    },
                     tryShow = () => {
 
-                    this.toggle = toggle || this.toggle;
+                        this.toggle = toggle || this.toggle;
 
-                    this.clearTimers();
+                        this.clearTimers();
 
-                    if (this.isActive()) {
-                        return;
-                    } else if (delay && active && active !== this && active.isDelaying) {
-                        this.showTimer = setTimeout(this.show, 10);
-                        return;
-                    } else if (this.isParentOf(active)) {
-
-                        if (active.hideTimer) {
-                            active.hide(false);
-                        } else {
+                        if (this.isActive()) {
                             return;
+                        } else if (delay && active && active !== this && active.isDelaying) {
+                            this.showTimer = setTimeout(this.show, 10);
+                            return;
+                        } else if (this.isParentOf(active)) {
+
+                            if (active.hideTimer) {
+                                active.hide(false);
+                            } else {
+                                return;
+                            }
+
+                        } else if (active && !this.isChildOf(active) && !this.isParentOf(active)) {
+                            var prev;
+                            while (active && active !== prev) {
+                                prev = active;
+                                active.hide(false);
+                            }
                         }
 
-                    } else if (active && !this.isChildOf(active) && !this.isParentOf(active)) {
-                        var prev;
-                        while (active && active !== prev) {
-                            prev = active;
-                            active.hide(false);
+                        if (delay && this.delayShow) {
+                            this.showTimer = setTimeout(show, this.delayShow);
+                        } else {
+                            show();
                         }
-                    }
 
-                    if (delay && this.delayShow) {
-                        this.showTimer = setTimeout(show, this.delayShow);
-                    } else {
-                        show();
-                    }
-
-                    active = this;
-                };
+                        active = this;
+                    };
 
                 if (toggle && this.toggle && !this.toggle.$el.is(toggle.$el)) {
 
@@ -363,6 +352,28 @@ export default function (UIkit) {
 
             isParentOf(drop) {
                 return drop && drop !== this && isWithin(drop.$el, this.$el);
+            },
+
+            position() {
+
+                removeClass(this.$el, `${this.clsDrop}-(stack|boundary)`).css({top: '', left: ''});
+
+                this.$el.show().toggleClass(`${this.clsDrop}-boundary`, this.boundaryAlign);
+
+                var boundary = getDimensions(this.boundary), alignTo = this.boundaryAlign ? boundary : getDimensions(this.toggle.$el);
+
+                if (this.align === 'justify') {
+                    var prop = this.getAxis() === 'y' ? 'width' : 'height';
+                    this.$el.css(prop, alignTo[prop]);
+                } else if (this.$el.outerWidth() > Math.max(boundary.right - alignTo.left, alignTo.right - boundary.left)) {
+                    this.$el.addClass(`${this.clsDrop}-stack`);
+                    this.$el.trigger('stack', [this]);
+                }
+
+                this.positionAt(this.$el, this.boundaryAlign ? this.boundary : this.toggle.$el, this.boundary);
+
+                this.$el[0].style.display = '';
+
             }
 
         }
